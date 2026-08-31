@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Higgsfield CPA Visualizer</title>
+<style>
+  :root{
+    --purple:#7c3aed; --purple-dark:#5b21b6; --purple-deep:#4c1d95;
+    --purple-light:#ede9fe; --purple-line:#c4b5fd; --purple-soft:#f5f3ff;
+    --bg:#f6f4fb; --card:#ffffff; --text:#1a1625; --muted:#6b6478;
+    --profit:#16a34a; --profit-bg:#dcfce7; --loss:#dc2626; --loss-bg:#fee2e2;
+    --amber:#b45309; --amber-bg:#fef3c7; --yellow:#fde047;
+    --border:#e9ddf8; --shadow:0 1px 2px rgba(76,29,149,.06),0 4px 14px rgba(76,29,149,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 18px 80px}
+
+  /* Header */
+  header.top{
+    background:linear-gradient(135deg,var(--purple-deep),var(--purple));
+    color:#fff;padding:18px 0 16px;box-shadow:var(--shadow);
+  }
+  header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  header.top h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.01em}
+  header.top .sub{font-size:13px;opacity:.85;margin-top:2px}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo .mark{width:30px;height:30px;border-radius:8px;background:#fff;color:var(--purple);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+  .top-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{font:inherit;font-weight:600;font-size:13px;border:1px solid var(--purple-line);
+    background:#fff;color:var(--purple-dark);padding:7px 13px;border-radius:9px;cursor:pointer;
+    transition:transform .05s,background .12s}
+  .btn:hover{background:var(--purple-soft)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--purple);color:#fff;border-color:var(--purple)}
+  .btn.primary:hover{background:var(--purple-dark)}
+
+  /* Banner */
+  .banner{background:var(--amber-bg);border:1px solid #fcd34d;color:#7c4a03;
+    padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;margin:16px 0 0;
+    display:flex;gap:8px;align-items:flex-start}
+  .banner .dot{flex:none;margin-top:2px}
+
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:16px 16px 18px;margin-top:14px;box-shadow:var(--shadow)}
+  .card h2{font-size:14px;margin:0 0 12px;color:var(--purple-dark);font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+  .card h2 .hint{font-size:11px;color:var(--muted);text-transform:none;font-weight:500;letter-spacing:0;margin-left:6px}
+
+  /* Equation board */
+  .eq{font-size:clamp(16px,3.6vw,24px);font-weight:700;text-align:center;line-height:1.7}
+  .eq .line{display:block}
+  .eq .var{color:var(--purple-dark)}
+  .eq .num{display:inline-block;min-width:1.6em;padding:0 .25em;border-radius:6px;
+    transition:background .25s,color .25s}
+  .eq .num.flash{background:var(--purple-light)}
+  .eq .res{color:var(--profit)}
+  .eq .res.neg{color:var(--loss)}
+  .eq small{font-weight:600;color:var(--muted);font-size:.62em;display:block;margin-top:6px}
+  .verdict{display:inline-block;margin-top:10px;padding:6px 16px;border-radius:999px;font-weight:800;font-size:15px}
+  .verdict.over{background:var(--loss-bg);color:var(--loss)}
+  .verdict.under{background:var(--amber-bg);color:var(--amber)}
+  .verdict.fair{background:var(--profit-bg);color:var(--profit)}
+
+  /* Sliders */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px}
+  .field .val{font-weight:800;color:var(--purple-dark);font-size:13px}
+  .row-input{display:flex;align-items:center;gap:8px}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;
+    background:var(--purple-line);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+    background:var(--purple);border:3px solid #fff;box-shadow:0 1px 4px rgba(76,29,149,.4);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--purple);
+    border:3px solid #fff;box-shadow:0 1px 4px rgba(76,29,149,.4);cursor:pointer;border:none}
+  input[type=number]{font:inherit;font-size:14px;font-weight:700;padding:5px 7px;width:84px;
+    border:1px solid var(--border);border-radius:8px;color:var(--text);background:#fff}
+  input[type=number]:focus{outline:none;border-color:var(--purple)}
+  input:disabled{background:#f3f0fa;color:var(--muted)}
+  select{font:inherit;font-size:13px;font-weight:700;padding:6px 9px;border:1px solid var(--border);
+    border-radius:8px;color:var(--purple-dark);background:#fff;cursor:pointer}
+
+  /* Output cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px}
+  .oc{background:var(--purple-soft);border:1px solid var(--border);border-radius:12px;padding:12px 13px}
+  .oc .k{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .oc .v{font-size:23px;font-weight:800;margin-top:3px;color:var(--purple-dark)}
+  .oc .v.pos{color:var(--profit)} .oc .v.neg{color:var(--loss)}
+  .oc .x{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* Preset tabs */
+  .tabs{display:flex;flex-wrap:wrap;gap:7px}
+  .tab{font:inherit;font-size:13px;font-weight:700;padding:7px 13px;border-radius:999px;
+    border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer}
+  .tab.active{background:var(--purple);color:#fff;border-color:var(--purple)}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;margin-left:10px}
+  .seg button{font:inherit;font-size:12px;font-weight:700;padding:6px 13px;border:none;background:#fff;color:var(--text);cursor:pointer}
+  .seg button.active{background:var(--purple-light);color:var(--purple-dark)}
+
+  /* Table */
+  .tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  .tbl th,.tbl td{padding:7px 6px;text-align:right;border-bottom:1px solid var(--border)}
+  .tbl th{text-align:right;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;font-weight:700}
+  .tbl th:first-child,.tbl td:first-child{text-align:left;font-weight:700;color:var(--purple-dark)}
+  .tbl td input{width:74px;padding:4px 6px;font-size:13px}
+  .tbl tr.sel{background:var(--purple-light)}
+  .tbl tr.cashback td{border-bottom:2px solid var(--profit)}
+  .cashbadge{display:inline-block;background:var(--profit-bg);color:var(--profit);font-size:10px;
+    font-weight:800;padding:1px 6px;border-radius:5px;margin-left:4px}
+  .pos{color:var(--profit);font-weight:700}.neg{color:var(--loss);font-weight:700}
+
+  /* Chart */
+  .chartwrap{margin-top:8px;overflow-x:auto}
+  svg.chart{width:100%;height:auto;max-width:720px;display:block;margin:0 auto}
+  .legend{display:flex;gap:16px;justify-content:center;font-size:12px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .legend i{width:16px;height:3px;border-radius:2px;display:inline-block}
+
+  /* Scenario compare */
+  .scen{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+  .scen-card{border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+  .scen-card .amt{font-size:26px;font-weight:800;color:var(--purple-dark)}
+  .scen-card .lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:2px}
+  .scen-card .row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-top:1px dashed var(--border)}
+  .scen-card .row b{color:var(--purple-dark)}
+  .scen-card .row b.pos{color:var(--profit)} .scen-card .row b.neg{color:var(--loss)}
+
+  /* Collapsible */
+  details{margin-top:14px}
+  details>summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--purple-dark);
+    list-style:none;padding:8px 12px;background:var(--purple-soft);border:1px solid var(--border);border-radius:10px}
+  details>summary::-webkit-details-marker{display:none}
+  details>summary::after{content:" ▾";float:right;color:var(--muted)}
+  details[open]>summary::after{content:" ▴"}
+  .volrow{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .volout{font-size:13px;margin-top:10px;line-height:1.8}
+  .volout b{color:var(--purple-dark)}
+
+  /* Explainer */
+  .expl{font-size:13px;color:var(--text);line-height:1.7}
+  .expl dt{font-weight:800;color:var(--purple-dark);margin-top:8px}
+  .expl dd{margin:2px 0 0}
+  .tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;
+    background:var(--purple-light);color:var(--purple-dark);font-size:10px;font-weight:800;cursor:help;vertical-align:middle}
+  .cto{background:var(--purple-deep);color:#fff;border-radius:12px;padding:16px 18px;margin-top:8px;font-size:14px;line-height:1.7}
+  .cto b{color:#fde68a}
+  .note{font-size:11px;color:var(--muted);font-style:normal}
+  @media(max-width:620px){
+    .grid{grid-template-columns:1fr}
+    .scen{grid-template-columns:1fr}
+    .tbl td input{width:58px}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="logo">
+      <div class="mark">$</div>
+      <div>
+        <h1>Higgsfield CPA Visualizer</h1>
+        <div class="sub">Max affordable CPA = projected LTV − projected credit cost</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="copyBtn">Copy summary</button>
+      <button class="btn" id="resetBtn">Reset to placeholders</button>
+      <button class="btn" id="helpBtn">Help</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="banner"><span class="dot">⚠️</span><span><b>PLACEHOLDER DATA</b> — all LTV & credit curves are FAKE teaching numbers. Replace with Higgsfield's real LTV & credit data before trusting any output.</span></div>
+
+  <!-- A: Equation board -->
+  <div class="card" style="background:linear-gradient(180deg,#fff,var(--purple-soft))">
+    <h2>Live Equation Board <span class="hint">updates with every slider</span></h2>
+    <div class="eq" id="eqboard"></div>
+    <div style="text-align:center"><span class="verdict" id="verdict"></span></div>
+  </div>
+
+  <!-- B: Primary sliders -->
+  <div class="card">
+    <h2>Primary Inputs</h2>
+    <div class="grid">
+      <div class="field">
+        <label>CPA paid now (C) <span class="tip" title="What Higgsfield pays the affiliate channel per acquired PAYING user.">?</span> &nbsp;<span class="val" id="v_cpa"></span></label>
+        <div class="row-input"><input type="range" id="s_cpa" min="0" max="2000" step="10"><input type="number" id="n_cpa" min="0" max="2000" step="10"></div>
+      </div>
+      <div class="field">
+        <label>Break-even target day N <span class="tip" title="The day by which cumulative LTV − credits − CPA should reach ≥0 (cashback).">?</span> &nbsp;<span class="val" id="v_day"></span></label>
+        <div class="row-input"><input type="range" id="s_day" min="0" max="11" step="1"><input type="number" id="n_day" min="30" max="365" step="1" style="width:84px"></div>
+      </div>
+      <div class="field">
+        <label>pLTV at day N <span class="tip" title="Projected lifetime value of a user measured at day N.">?</span> &nbsp;<span class="val" id="v_ltv"></span></label>
+        <div class="row-input"><input type="range" id="s_ltv" min="0" max="3000" step="5"><input type="number" id="n_ltv" min="0" step="5"></div>
+        <span class="note" id="ltv_note"></span>
+      </div>
+      <div class="field">
+        <label>pCredit at day N <span class="tip" title="Projected AI compute/credit cost to serve that user, measured at day N.">?</span> &nbsp;<span class="val" id="v_credit"></span></label>
+        <div class="row-input"><input type="range" id="s_credit" min="0" max="1500" step="5"><input type="number" id="n_credit" min="0" step="5"></div>
+        <span class="note" id="credit_note"></span>
+      </div>
+      <div class="field">
+        <label>Halo $ / user <span class="tip" title="Untracked brand-lift value per user from affiliate exposure. Default 0 — kept separate from tracked profit.">?</span> &nbsp;<span class="val" id="v_halo"></span></label>
+        <div class="row-input"><input type="range" id="s_halo" min="0" max="500" step="10"><input type="number" id="n_halo" min="0" max="500" step="10"></div>
+      </div>
+      <div class="field">
+        <label>Traffic quality multiplier <span class="tip" title="Scales pLTV only (credits unchanged). 1.0 = baseline; <1 = worse tire-kickers, >1 = congruent AI-video makers.">?</span> &nbsp;<span class="val" id="v_q"></span></label>
+        <div class="row-input"><input type="range" id="s_q" min="0.5" max="1.5" step="0.05"><input type="number" id="n_q" min="0.5" max="1.5" step="0.05"></div>
+      </div>
+      <div class="field">
+        <label>Competitor CPA <span class="tip" title="What rival programs pay affiliates (Base44-style ~$150–$350). Used to price 'just enough to swap'.">?</span> &nbsp;<span class="val" id="v_comp"></span></label>
+        <div class="row-input"><input type="range" id="s_comp" min="0" max="1000" step="10"><input type="number" id="n_comp" min="0" max="1000" step="10"></div>
+      </div>
+      <div class="field">
+        <label>Swap premium over competitor <span class="tip" title="How much extra over the competitor CPA you pay to win the affiliate. Capped by max affordable CPA.">?</span> &nbsp;<span class="val" id="v_prem"></span></label>
+        <div class="row-input"><input type="range" id="s_prem" min="0" max="500" step="10"><input type="number" id="n_prem" min="0" max="500" step="10"></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--muted)">
+      Internal CAC signal overheard ~<b style="color:var(--purple-dark)">$60</b> (reference annotation only — not used in math). &nbsp;|&nbsp; Quality bump band: <b style="color:var(--purple-dark)">$300–$400</b>. &nbsp;|&nbsp; Quality scales LTV only; credits stay unscaled.
+    </div>
+  </div>
+
+  <!-- C: Output cards -->
+  <div class="card">
+    <h2>Output Cards</h2>
+    <div class="cards" id="outcards"></div>
+  </div>
+
+  <!-- E: Plan presets -->
+  <div class="card">
+    <h2>Plan Preset <span class="hint">placeholders — edit cells below with real Higgsfield data</span></h2>
+    <div class="tabs" id="presets"></div>
+    <div style="margin-top:12px">
+      <span style="font-size:12px;font-weight:700;color:var(--muted)">Billing:</span>
+      <span class="seg" id="billing">
+        <button data-b="monthly">Monthly</button>
+        <button data-b="annual">Annual</button>
+      </span>
+      <span style="font-size:11px;color:var(--muted);margin-left:10px">Annual = cash upfront, lower early credits. Push annual.</span>
+    </div>
+  </div>
+
+  <!-- D: LTV curve + chart + table -->
+  <div class="card">
+    <h2>LTV Curve — profit at each checkpoint <span class="hint">edit LTV & credit cells live</span></h2>
+    <div class="chartwrap">
+      <svg class="chart" id="chart" viewBox="0 0 720 300" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--purple)"></i> Profit at current CPA</span>
+      <span><i style="background:var(--purple-line)"></i> Max affordable CPA ceiling</span>
+      <span><i style="background:var(--profit)"></i> Cashback day (profit ≥ 0)</span>
+    </div>
+    <table class="tbl" id="curvetable"></table>
+  </div>
+
+  <!-- F: Scenario compare -->
+  <div class="card">
+    <h2>Scenario Compare <span class="hint">what the CTO stares at</span></h2>
+    <div class="scen" id="scen"></div>
+  </div>
+
+  <!-- G: Volume sanity -->
+  <details>
+    <summary>Volume sanity (illustrative, not cash accounting)</summary>
+    <div style="padding:10px 4px">
+      <div class="volrow">
+        <label style="font-size:13px;font-weight:700">Paid acquisitions / month</label>
+        <input type="range" id="s_vol" min="0" max="10000" step="50" style="max-width:300px">
+        <input type="number" id="n_vol" min="0" max="10000" step="50" style="width:84px">
+        <span class="val" id="v_vol" style="font-weight:800;color:var(--purple-dark)"></span>
+      </div>
+      <div class="volout" id="volout"></div>
+      <span class="note">Illustrative only. Contribution = users × profit/user at day N. Not a cash-flow forecast and not a volume promise.</span>
+    </div>
+  </details>
+
+  <!-- H: Explainer -->
+  <details id="helpdrawer">
+    <summary>Say this to the CTO — explainer & script</summary>
+    <div style="padding:12px 4px">
+      <dl class="expl">
+        <dt>pLTV</dt><dd>Projected lifetime value of an acquired paying user, measured at a specific day N.</dd>
+        <dt>pCredit</dt><dd>Projected AI compute / credit cost to serve that user, measured at day N.</dd>
+        <dt>Day-N break-even</dt><dd>The day when cumulative (pLTV×quality − pCredit + Halo − CPA) first reaches ≥ 0. Everything after is profit.</dd>
+        <dt>Halo</dt><dd>Optional untracked brand-lift value per user; kept separate so you don't confuse tracked vs halo profit.</dd>
+        <dt>Traffic quality</dt><dd>Multiplier on pLTV only (credits unchanged). Congruent AI-video makers > 1; random tire-kickers < 1.</dd>
+        <dt>Pay just enough to swap</dt><dd>Suggested CPA = min(max affordable CPA, competitor CPA + premium) — win affiliates without overpaying your own ceiling.</dd>
+        <dt>Cashback cycle</dt><dd>How the team thinks: pay CPA up front, recover it by the cashback day, keep everything after. Not abstract margin %.</dd>
+      </dl>
+      <div class="cto">
+        <b>Say this to the CTO:</b><br>
+        CPA isn't a guess — it's projected LTV minus credit cost at the day we want to break even. Move the day slider and watch the ceiling move. We start at $200, bump toward $300–$400 only when plan mix and yearly % prove quality. We only pay on paid plans.
+      </div>
+    </div>
+  </details>
+</div>
+
+<script>
+"use strict";
+const DAY_OPTIONS=[30,60,90,120,150,180,210,240,270,300,330,365];
+const TABLE_DAYS=[30,60,90,120,180,210,240,365];
+
+// FAKE placeholder curves per preset / billing. Replace with real Higgsfield data.
+const PRESETS={
+  "Starter monthly ~$19":{
+    monthly:{30:[30,10],60:[55,20],90:[80,30],120:[105,40],180:[150,60],210:[170,70],240:[190,80],365:[260,110]},
+    annual:{30:[90,8],60:[120,15],90:[150,22],120:[175,30],180:[215,50],210:[235,60],240:[255,70],365:[320,100]}
+  },
+  "Starter annual ~$228":{
+    monthly:{30:[35,12],60:[62,22],90:[88,32],120:[112,42],180:[160,62],210:[180,72],240:[200,82],365:[270,112]},
+    annual:{30:[140,7],60:[170,14],90:[195,21],120:[218,28],180:[262,48],210:[282,58],240:[300,68],365:[368,98]}
+  },
+  "Mid ~$59/mo":{
+    monthly:{30:[80,25],60:[140,45],90:[200,65],120:[260,85],180:[360,120],210:[400,140],240:[440,155],365:[590,200]},
+    annual:{30:[250,20],60:[300,40],90:[340,60],120:[380,80],180:[450,120],210:[490,140],240:[530,160],365:[680,210]}
+  },
+  "High ~$130/mo":{
+    monthly:{30:[160,45],60:[280,80],90:[400,115],120:[510,150],180:[700,220],210:[780,250],240:[850,275],365:[1150,380]},
+    annual:{30:[600,35],60:[680,70],90:[750,105],120:[820,140],180:[950,210],210:[1020,240],240:[1080,265],365:[1300,360]}
+  },
+  Custom:null
+};
+
+const DEFAULTS={
+  preset:"Mid ~$59/mo", billing:"monthly", selectedDay:180,
+  cpa:200, halo:0, quality:1.0, competitorCPA:250, swapPremium:50, volume:1000
+};
+const LS_KEY="higgsfield_cpa_viz_v1";
+
+let S={}; // state
+function deep(o){return JSON.parse(JSON.stringify(o))}
+function clonePresets(){return deep(PRESETS)}
+
+function defaults(){
+  const p=clonePresets();
+  p["Custom"]=deep(p["Mid ~$59/mo"].monthly); // custom holds a single curve set
+  return {
+    preset:DEFAULTS.preset, billing:DEFAULTS.billing, selectedDay:DEFAULTS.selectedDay,
+    cpa:DEFAULTS.cpa, halo:DEFAULTS.halo, quality:DEFAULTS.quality,
+    competitorCPA:DEFAULTS.competitorCPA, swapPremium:DEFAULTS.swapPremium, volume:DEFAULTS.volume,
+    curves:p
+  };
+}
+
+function load(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(!raw){S=defaults();return}
+    const p=JSON.parse(raw);
+    const d=defaults();
+    S=Object.assign(d,p);
+    // merge curves to ensure structure
+    if(!S.curves) S.curves=d.curves;
+    if(!S.curves["Custom"]) S.curves["Custom"]=deep(d.curves["Mid ~$59/mo"]);
+  }catch(e){S=defaults()}
+}
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(S))}catch(e){}}
+
+// curve accessor: returns {ltv,credit} for the active preset/billing/day
+function activeCurveMap(){
+  if(S.preset==="Custom"){ // custom is a flat map day->[ltv,credit]
+    const m={}; TABLE_DAYS.forEach(d=>{const v=S.curves["Custom"][d]||[0,0];m[d]={ltv:+v[0],credit:+v[1]}});
+    return m;
+  }
+  const m={}; const c=S.curves[S.preset][S.billing];
+  TABLE_DAYS.forEach(d=>{m[d]={ltv:+c[d][0],credit:+c[d][1]}});
+  return m;
+}
+function isTableDay(d){return TABLE_DAYS.includes(d)}
+function interp(day){
+  const m=activeCurveMap();
+  if(isTableDay(day)) return {ltv:m[day].ltv,credit:m[day].credit};
+  // clamp
+  if(day<=TABLE_DAYS[0]) return {ltv:m[30].ltv,credit:m[30].credit};
+  if(day>=TABLE_DAYS[TABLE_DAYS.length-1]) return {ltv:m[365].ltv,credit:m[365].credit};
+  let lo=TABLE_DAYS[0],hi=TABLE_DAYS[TABLE_DAYS.length-1];
+  for(let i=0;i<TABLE_DAYS.length-1;i++){if(day>TABLE_DAYS[i]&&day<TABLE_DAYS[i+1]){lo=TABLE_DAYS[i];hi=TABLE_DAYS[i+1];break}}
+  const t=(day-lo)/(hi-lo);
+  return {ltv:Math.round(m[lo].ltv+(m[hi].ltv-m[lo].ltv)*t), credit:Math.round(m[lo].credit+(m[hi].credit-m[lo].credit)*t)};
+}
+function writeCurve(day,ltv,credit){
+  if(!isTableDay(day)) return;
+  if(S.preset==="Custom"){S.curves["Custom"][day]=[ltv,credit];return}
+  S.curves[S.preset][S.billing][day]=[ltv,credit];
+}
+
+// MATH (exact per spec). quality scales LTV only; credits stay.
+function ltvAt(day){return interp(day).ltv}
+function creditAt(day){return interp(day).credit}
+function contribution(day){return ltvAt(day)*S.quality - creditAt(day) + S.halo}
+function maxCPA(day){return Math.max(0, ltvAt(day)*S.quality - creditAt(day) + S.halo)}
+function profit(day,C){return ltvAt(day)*S.quality - creditAt(day) + S.halo - C}
+function cashbackDay(C){
+  for(const d of TABLE_DAYS){if(profit(d,C)>=0) return d}
+  return null;
+}
+function suggestedCPA(){return Math.min(maxCPA(S.selectedDay), S.competitorCPA + S.swapPremium)}
+function fmt(n){return (Math.round(n*100)/100).toLocaleString('en-US',{maximumFractionDigits:0})}
+
+// ---------- rendering ----------
+let flashSet=new Set();
+function render(){
+  renderEq();
+  renderSliders();
+  renderOut();
+  renderPresets();
+  renderTable();
+  renderChart();
+  renderScen();
+  renderVol();
+  save();
+}
+
+function renderEq(){
+  const d=S.selectedDay;
+  const L=ltvAt(d), Cr=creditAt(d), mx=maxCPA(d), pr=profit(d,S.cpa), sugg=suggestedCPA();
+  const cb=cashbackDay(S.cpa);
+  const el=document.getElementById('eqboard');
+  el.innerHTML=`
+    <span class="line"><span class="var">pLTV</span>(<span class="num ${flashSet.has('ltv')?'flash':''}">$${fmt(L)}</span>) − <span class="var">pCredit</span>(<span class="num ${flashSet.has('credit')?'flash':''}">$${fmt(Cr)}</span>) = <span class="num ${flashSet.has('mx')?'flash':''}">Max CPA <span class="res">$${fmt(mx)}</span></span></span>
+    <span class="line">Pay CPA <span class="num ${flashSet.has('cpa')?'flash':''}">$${fmt(S.cpa)}</span> → Profit/user at day ${d} = <span class="num ${pr>=0?'res':'res neg'} ${flashSet.has('pr')?'flash':''}">$${fmt(pr)}</span></span>
+    <span class="line">Break-even at day ${d}? <b style="color:${mx>=S.cpa?'var(--profit)':'var(--loss)'}">${mx>=S.cpa?'YES':'NO'}</b> &nbsp;·&nbsp; Days to cashback: <b style="color:var(--purple-dark)">${cb?cb:'>365 / never'}</b></span>
+    <small>Suggested CPA to win affiliates: $${fmt(sugg)} (= min(max $${fmt(mx)}, competitor $${fmt(S.competitorCPA)} + premium $${fmt(S.swapPremium)}))</small>`;
+  flashSet.clear();
+
+  const v=document.getElementById('verdict');
+  const over=S.cpa>mx;
+  const under=!over && S.cpa<sugg;
+  v.className='verdict '+(over?'over':(under?'under':'fair'));
+  v.textContent = over?`OVERPAYING vs ceiling (−$${fmt(S.cpa-mx)})`:(under?`UNDERPAYING — room to raise to $${fmt(sugg)}`:'FAIR / competitive');
+}
+
+function setVal(id,val){document.getElementById(id).textContent=val}
+function bindPair(sId,nId,getVal,setVal,min,max,step){
+  // slider+number sync handled in attach
+}
+
+function renderSliders(){
+  const pairs=[
+    ['cpa','s_cpa','n_cpa',0,2000,10,v=>'$'+fmt(v)],
+    ['day','s_day','n_day',null,null,null,v=>'Day '+v],
+    ['ltv','s_ltv','n_ltv',0,3000,5,v=>'$'+fmt(v)],
+    ['credit','s_credit','n_credit',0,1500,5,v=>'$'+fmt(v)],
+    ['halo','s_halo','n_halo',0,500,10,v=>'$'+fmt(v)],
+    ['quality','s_q','n_q',0.5,1.5,0.05,v=>(+(Math.round(v*100)/100)).toFixed(2)+'×'],
+    ['competitorCPA','s_comp','n_comp',0,1000,10,v=>'$'+fmt(v)],
+    ['swapPremium','s_prem','n_prem',0,500,10,v=>'$'+fmt(v)],
+  ];
+  // day handled specially below
+  setVal('v_cpa','$'+fmt(S.cpa));
+  setVal('v_day','Day '+S.selectedDay);
+  setVal('v_comp','$'+fmt(S.competitorCPA));
+  setVal('v_prem','$'+fmt(S.swapPremium));
+  setVal('v_halo','$'+fmt(S.halo));
+  setVal('v_q',(+(Math.round(S.quality*100)/100)).toFixed(2)+'×');
+  const L=ltvAt(S.selectedDay), Cr=creditAt(S.selectedDay);
+  setVal('v_ltv','$'+fmt(L));
+  setVal('v_credit','$'+fmt(Cr));
+
+  // set slider/number values
+  const setR=(sid,nid,val,min,max,step)=>{
+    const s=document.getElementById(sid),n=document.getElementById(nid);
+    if(s){if(s.min!==undefined){s.min=min;s.max=max;s.step=step;s.value=val}}
+    if(n){n.min=min;n.max=max;n.step=step;n.value=val}
+  };
+  document.getElementById('s_cpa').value=S.cpa;document.getElementById('n_cpa').value=S.cpa;
+  document.getElementById('s_halo').value=S.halo;document.getElementById('n_halo').value=S.halo;
+  document.getElementById('s_q').value=S.quality;document.getElementById('n_q').value=S.quality;
+  document.getElementById('s_comp').value=S.competitorCPA;document.getElementById('n_comp').value=S.competitorCPA;
+  document.getElementById('s_prem').value=S.swapPremium;document.getElementById('n_prem').value=S.swapPremium;
+  // day: slider index
+  document.getElementById('s_day').value=DAY_OPTIONS.indexOf(S.selectedDay);
+  document.getElementById('n_day').value=S.selectedDay;
+
+  // ltv/credit main inputs
+  const tbl=isTableDay(S.selectedDay);
+  ['ltv','credit'].forEach(k=>{
+    const val=k==='ltv'?L:Cr;
+    const s=document.getElementById('s_'+k),n=document.getElementById('n_'+k);
+    s.value=val;n.value=val;
+    s.disabled=!tbl;n.disabled=!tbl;
+    s.title=tbl?'':'Interpolated value — pick a checkpoint day (30/60/90/120/180/210/240/365) to edit directly';
+    n.title=s.title;
+  });
+  document.getElementById('ltv_note').textContent=tbl?'editable (writes to day '+S.selectedDay+' row)':'interpolated — pick 30/60/90/120/180/210/240/365 to edit';
+  document.getElementById('credit_note').textContent=tbl?'':'interpolated — pick a checkpoint day to edit';
+}
+
+function renderOut(){
+  const d=S.selectedDay, mx=maxCPA(d), sugg=suggestedCPA(), pr=profit(d,S.cpa);
+  const prSugg=profit(d,sugg), pr300=profit(d,300), pr400=profit(d,400);
+  const mos=mx-S.cpa;
+  const cls=v=>v>=0?'pos':'neg';
+  const cards=[
+    ['Max affordable CPA @ day '+d,mx,'Ceiling = pLTV×q − pCredit + Halo',''],
+    ['Suggested CPA (win affiliates)',sugg,'min(ceiling, competitor+premium)',''],
+    ['Profit/user @ current CPA',pr,'at day '+d+' · CPA $'+fmt(S.cpa),cls(pr)],
+    ['Profit/user @ suggested CPA',prSugg,'at day '+d+' · CPA $'+fmt(sugg),cls(prSugg)],
+    ['Profit/user if CPA $300',pr300,'quality-bump scenario',cls(pr300)],
+    ['Profit/user if CPA $400',pr400,'quality-bump scenario',cls(pr400)],
+    ['Margin of safety',mos,'ceiling − current CPA',cls(mos)],
+  ];
+  document.getElementById('outcards').innerHTML=cards.map(c=>`
+    <div class="oc"><div class="k">${c[0]}</div><div class="v ${c[3]}">$${fmt(c[1])}</div><div class="x">${c[2]}</div></div>`).join('');
+}
+
+function renderPresets(){
+  const el=document.getElementById('presets');
+  el.innerHTML=Object.keys(PRESETS).concat("Custom").map(name=>`<button class="tab ${S.preset===name?'active':''}" data-preset="${name}">${name}</button>`).join('');
+  el.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+    S.preset=b.dataset.preset;
+    if(S.preset==="Custom" && !S.curves["Custom"]) S.curves["Custom"]=deep(S.curves["Mid ~$59/mo"].monthly);
+    render();
+  });
+  document.querySelectorAll('#billing button').forEach(b=>{
+    b.classList.toggle('active',b.dataset.b===S.billing);
+    b.onclick=()=>{S.billing=b.dataset.b;render()};
+  });
+}
+
+function renderTable(){
+  const m=activeCurveMap();
+  const cb=cashbackDay(S.cpa);
+  let rows=`<tr><th>Day</th><th>pLTV $</th><th>pCredit $</th><th>Contribution</th><th>Max CPA</th><th>Profit @ $${fmt(S.cpa)}</th></tr>`;
+  TABLE_DAYS.forEach(d=>{
+    const cont=contribution(d), mx=maxCPA(d), pr=profit(d,S.cpa);
+    const sel=d===S.selectedDay?'sel':'';
+    const iscb=d===cb?'cashback':'';
+    rows+=`<tr class="${sel} ${iscb}">
+      <td>Day ${d}${d===cb?'<span class="cashbadge">cashback</span>':''}</td>
+      <td><input type="number" class="tcell" data-day="${d}" data-k="ltv" value="${m[d].ltv}" min="0" step="5"></td>
+      <td><input type="number" class="tcell" data-day="${d}" data-k="credit" value="${m[d].credit}" min="0" step="5"></td>
+      <td class="${cont>=0?'pos':'neg'}">$${fmt(cont)}</td>
+      <td>$${fmt(mx)}</td>
+      <td class="${pr>=0?'pos':'neg'}">$${fmt(pr)}</td>
+    </tr>`;
+  });
+  const t=document.getElementById('curvetable');
+  t.innerHTML=rows;
+  t.querySelectorAll('.tcell').forEach(inp=>{
+    inp.oninput=()=>{
+      const d=+inp.dataset.day, k=inp.dataset.k, v=+inp.value||0;
+      if(k==='ltv') writeCurve(d,v,creditAt(d)); else writeCurve(d,ltvAt(d),v);
+      flashSet.add(k);
+      render();
+      // refocus the edited cell
+      const cell=document.querySelector(`.tcell[data-day="${d}"][data-k="${k}"]`);
+      if(cell){cell.focus();cell.select&&cell.select()}
+    };
+  });
+}
+
+function renderChart(){
+  const pts=DAY_OPTIONS.map(d=>({d,pr:profit(d,S.cpa),mx:maxCPA(d)}));
+  const W=720,H=300,padL=44,padR=14,padT=16,padB=34;
+  const xMin=30,xMax=365;
+  const allY=pts.flatMap(p=>[p.pr,p.mx]).concat([0]);
+  let yMin=Math.min(...allY), yMax=Math.max(...allY);
+  if(yMax-yMin<10){yMax+=5;yMin-=5}
+  yMax*=1.1; yMin*=1.1;
+  const X=d=>padL+(d-xMin)/(xMax-xMin)*(W-padL-padR);
+  const Y=v=>padT+(yMax-v)/(yMax-yMin)*(H-padT-padB);
+  const cb=cashbackDay(S.cpa);
+  const path=key=>pts.map((p,i)=>(i?'L':'M')+X(p.d).toFixed(1)+' '+Y(p[key]).toFixed(1)).join(' ');
+  const dots=(key,col)=>pts.filter(p=>isTableDay(p.d)).map(p=>`<circle cx="${X(p.d).toFixed(1)}" cy="${Y(p[key]).toFixed(1)}" r="3.5" fill="${col}"/>`).join('');
+  // y ticks
+  const ticks=[]; const step=niceStep((yMax-yMin)/4);
+  for(let t=Math.ceil(yMin/step)*step;t<=yMax;t+=step){ticks.push(t)}
+  const tickMarks=ticks.map(t=>`<line x1="${padL}" x2="${W-padR}" y1="${Y(t).toFixed(1)}" y2="${Y(t).toFixed(1)}" stroke="#eee" stroke-width="1"/><text x="${padL-6}" y="${Y(t).toFixed(1)+3}" text-anchor="end" font-size="10" fill="#6b6478">$${fmt(t)}</text>`).join('');
+  const xticks=TABLE_DAYS.map(d=>`<text x="${X(d).toFixed(1)}" y="${H-padB+14}" text-anchor="middle" font-size="10" fill="#6b6478">${d}</text>`).join('');
+  const zeroLine = (yMin<0&&yMax>0)?`<line x1="${padL}" x2="${W-padR}" y1="${Y(0)}" y2="${Y(0)}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3"/>`:'';
+  const cbMark=cb?`<line x1="${X(cb)}" x2="${X(cb)}" y1="${padT}" y2="${H-padB}" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="4 3" opacity=".7"/><text x="${X(cb)}" y="${padT+10}" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">cashback d${cb}</text>`:'';
+  const selMark=`<line x1="${X(S.selectedDay)}" x2="${X(S.selectedDay)}" y1="${padT}" y2="${H-padB}" stroke="#7c3aed" stroke-width="1" stroke-dasharray="2 3" opacity=".5"/>`;
+  document.getElementById('chart').innerHTML=`
+    ${tickMarks}${zeroLine}
+    <path d="${path('mx')}" fill="none" stroke="#c4b5fd" stroke-width="2.5"/>
+    ${dots('mx','#c4b5fd')}
+    <path d="${path('pr')}" fill="none" stroke="#7c3aed" stroke-width="2.5"/>
+    ${dots('pr','#7c3aed')}
+    ${cbMark}${selMark}
+    ${xticks}
+    <text x="${padL}" y="${padT-4}" font-size="10" fill="#6b6478">profit / CPA ($)</text>
+  `;
+}
+function niceStep(rough){const p=Math.pow(10,Math.floor(Math.log10(rough)));const n=rough/p;if(n<1.5)return p;if(n<3)return 2*p;if(n<7)return 5*p;return 10*p}
+
+function renderScen(){
+  const d=S.selectedDay; const mx=maxCPA(d);
+  const cols=[200,300,400];
+  document.getElementById('scen').innerHTML=cols.map(c=>{
+    const cb=cashbackDay(c);
+    const p180=profit(180,c), p365=profit(365,c);
+    return `<div class="scen-card">
+      <div class="lbl">CPA</div><div class="amt">$${c}</div>
+      <div class="row"><span>Cashback day</span><b>${cb?cb:'>365'}</b></div>
+      <div class="row"><span>Profit @ day 180</span><b class="${p180>=0?'pos':'neg'}">$${fmt(p180)}</b></div>
+      <div class="row"><span>Profit @ day 365</span><b class="${p365>=0?'pos':'neg'}">$${fmt(p365)}</b></div>
+      <div class="row"><span>Max affordable @ day ${d}</span><b>$${fmt(mx)}</b></div>
+    </div>`;
+  }).join('');
+}
+
+function renderVol(){
+  document.getElementById('v_vol').textContent=S.volume.toLocaleString();
+  document.getElementById('s_vol').value=S.volume;document.getElementById('n_vol').value=S.volume;
+  const cont=contribution(S.selectedDay);
+  const cashOut=S.volume*S.cpa;
+  const contrib=S.volume*profit(S.selectedDay,S.cpa);
+  document.getElementById('volout').innerHTML=`
+    Monthly CPA cash out: <b>$${fmt(cashOut)}</b><br>
+    Illustrative monthly contribution at day ${S.selectedDay}: <b class="${contrib>=0?'pos':'neg'}">$${fmt(contrib)}</b> (= ${S.volume.toLocaleString()} × $${fmt(profit(S.selectedDay,S.cpa))}/user)<br>
+    Avg contribution/user across the cycle: <b>$${fmt(cont)}</b>`;
+}
+
+// ---------- wiring ----------
+function flashKey(k){flashSet.add(k)}
+
+function attach(){
+  const num=(id,key,parse)=>{const e=document.getElementById(id);e.oninput=()=>{S[key]=parse(e.value);flashKey(key);render()}};
+  // cpa
+  document.getElementById('s_cpa').oninput=e=>{S.cpa=+e.target.value;flashKey('cpa');render()};
+  document.getElementById('n_cpa').oninput=e=>{S.cpa=+e.target.value;flashKey('cpa');render()};
+  // day slider (index)
+  document.getElementById('s_day').oninput=e=>{S.selectedDay=DAY_OPTIONS[+e.target.value];flashKey('day');render()};
+  document.getElementById('n_day').oninput=e=>{let v=Math.max(30,Math.min(365,+e.target.value||30));S.selectedDay=v;flashKey('day');render()};
+  // ltv/credit main -> write to curve (table day only)
+  document.getElementById('s_ltv').oninput=e=>{if(isTableDay(S.selectedDay)){writeCurve(S.selectedDay,+e.target.value,creditAt(S.selectedDay));flashKey('ltv');render()}};
+  document.getElementById('n_ltv').oninput=e=>{if(isTableDay(S.selectedDay)){writeCurve(S.selectedDay,+e.target.value||0,creditAt(S.selectedDay));flashKey('ltv');render()}};
+  document.getElementById('s_credit').oninput=e=>{if(isTableDay(S.selectedDay)){writeCurve(S.selectedDay,ltvAt(S.selectedDay),+e.target.value);flashKey('credit');render()}};
+  document.getElementById('n_credit').oninput=e=>{if(isTableDay(S.selectedDay)){writeCurve(S.selectedDay,ltvAt(S.selectedDay),+e.target.value||0);flashKey('credit');render()}};
+  // halo
+  document.getElementById('s_halo').oninput=e=>{S.halo=+e.target.value;flashKey('halo');render()};
+  document.getElementById('n_halo').oninput=e=>{S.halo=+e.target.value;flashKey('halo');render()};
+  // quality
+  document.getElementById('s_q').oninput=e=>{S.quality=+e.target.value;flashKey('quality');render()};
+  document.getElementById('n_q').oninput=e=>{S.quality=+e.target.value;flashKey('quality');render()};
+  // competitor
+  document.getElementById('s_comp').oninput=e=>{S.competitorCPA=+e.target.value;flashKey('comp');render()};
+  document.getElementById('n_comp').oninput=e=>{S.competitorCPA=+e.target.value;flashKey('comp');render()};
+  // premium
+  document.getElementById('s_prem').oninput=e=>{S.swapPremium=+e.target.value;flashKey('prem');render()};
+  document.getElementById('n_prem').oninput=e=>{S.swapPremium=+e.target.value;flashKey('prem');render()};
+  // volume
+  document.getElementById('s_vol').oninput=e=>{S.volume=+e.target.value;renderVol();save()};
+  document.getElementById('n_vol').oninput=e=>{S.volume=+e.target.value;renderVol();save()};
+
+  document.getElementById('resetBtn').onclick=()=>{if(confirm('Reset all inputs and tables to placeholder defaults? Your typed real numbers will be lost.')){S=defaults();render()}};
+  document.getElementById('copyBtn').onclick=copySummary;
+  document.getElementById('helpBtn').onclick=()=>{const d=document.getElementById('helpdrawer');d.open=!d.open};
+}
+
+function copySummary(){
+  const d=S.selectedDay, mx=maxCPA(d), sugg=suggestedCPA(), pr=profit(d,S.cpa), cb=cashbackDay(S.cpa);
+  const m=activeCurveMap();
+  const cur=TABLE_DAYS.map(dd=>`d${dd}: LTV $${fmt(m[dd].ltv)}/cred $${fmt(m[dd].credit)}`).join('; ');
+  const txt=`Higgsfield CPA visualizer summary
+Preset: ${S.preset} (${S.billing}) | Selected day N: ${d}
+CPA paid now: $${fmt(S.cpa)} | Halo: $${fmt(S.halo)} | Traffic quality: ${(+(Math.round(S.quality*100)/100)).toFixed(2)}x
+Competitor CPA: $${fmt(S.competitorCPA)} | Swap premium: $${fmt(S.swapPremium)}
+pLTV(day ${d})=$${fmt(ltvAt(d))} − pCredit(day ${d})=$${fmt(creditAt(d))} = Max affordable CPA $${fmt(mx)}
+Suggested CPA to win affiliates: $${fmt(sugg)} (capped by ceiling)
+Profit/user at day ${d} at CPA $${fmt(S.cpa)}: $${fmt(pr)}
+Cashback day: ${cb?cb:'>365 / never'} | Verdict: ${S.cpa>mx?'Overpaying':(S.cpa<sugg?'Underpaying (room to raise)':'Fair')}
+Curve (${S.billing}): ${cur}
+Scenario: CPA $200 → cashback ${cashbackDay(200)||'>365'}, P@365 $${fmt(profit(365,200))} | $300 → ${cashbackDay(300)||'>365'}, $${fmt(profit(365,300))} | $400 → ${cashbackDay(400)||'>365'}, $${fmt(profit(365,400))}
+NOTE: all LTV/credit figures are PLACEHOLDER — replace with Higgsfield real data.`;
+  navigator.clipboard.writeText(txt).then(()=>{const b=document.getElementById('copyBtn');const t=b.textContent;b.textContent='Copied!';setTimeout(()=>b.textContent=t,1400)}).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+  });
+}
+
+load();
+attach();
+render();
+</script>
+</body>
+</html>
