@@ -522,7 +522,8 @@ function renderOut(){
 
 function renderPresets(){
   const el=document.getElementById('presets');
-  el.innerHTML=Object.keys(PRESETS).concat("Custom").map(name=>`<button class="tab ${S.preset===name?'active':''}" data-preset="${name}">${name}</button>`).join('');
+  const names=Object.keys(PRESETS);
+  el.innerHTML=names.map(name=>`<button class="tab ${S.preset===name?'active':''}" data-preset="${name}">${name}</button>`).join('');
   el.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
     S.preset=b.dataset.preset;
     if(S.preset==="Custom" && !S.curves["Custom"]) S.curves["Custom"]=deep(S.curves["Mid ~$59/mo"].monthly);
