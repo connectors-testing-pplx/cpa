@@ -106,7 +106,8 @@
   .seg button.active{background:var(--purple-light);color:var(--purple-dark)}
 
   /* Table */
-  .tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:10px}
+  .tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:460px}
   .tbl th,.tbl td{padding:7px 6px;text-align:right;border-bottom:1px solid var(--border)}
   .tbl th{text-align:right;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;font-weight:700}
   .tbl th:first-child,.tbl td:first-child{text-align:left;font-weight:700;color:var(--purple-dark)}
@@ -157,6 +158,8 @@
     .grid{grid-template-columns:1fr}
     .scen{grid-template-columns:1fr}
     .tbl td input{width:58px}
+    .tbl{font-size:12px}
+    .tbl th,.tbl td{padding:6px 4px}
   }
 </style>
 </head>
@@ -263,7 +266,7 @@
       <span><i style="background:var(--purple-line)"></i> Max affordable CPA ceiling</span>
       <span><i style="background:var(--profit)"></i> Cashback day (profit ≥ 0)</span>
     </div>
-    <table class="tbl" id="curvetable"></table>
+    <div class="tblwrap"><table class="tbl" id="curvetable"></table></div>
   </div>
 
   <!-- F: Scenario compare -->
